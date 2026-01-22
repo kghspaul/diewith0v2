@@ -1,0 +1,1178 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Die With Zero 財務計算機 Pro (v4.5 增貸+選項擴充版)</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --accent: #e67e22; /* 享樂橘 */
+            --growth: #27ae60; /* 累積綠 */
+            --house: #8e44ad;   /* 買房紫 */
+            --flat: #7f8c8d;    /* 平滑灰 */
+            --bg: #f4f6f8;
+            --card-bg: #ffffff;
+            --text-light: #636e72;
+            --hint-color: #95a5a6;
+            --error: #c0392b;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--primary);
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: var(--card-bg);
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.08);
+        }
+
+        h1 { text-align: center; margin-bottom: 5px; color: var(--primary); letter-spacing: -0.5px; }
+        .subtitle { text-align: center; color: var(--text-light); font-size: 0.95em; margin-bottom: 30px; }
+
+        /* Tabs */
+        .tabs { display: flex; margin-bottom: 30px; background: #dfe6e9; border-radius: 12px; padding: 5px; }
+        .tab-btn {
+            flex: 1; padding: 14px; text-align: center; cursor: pointer; font-weight: bold;
+            border-radius: 10px; color: var(--text-light); transition: 0.2s; font-size: 1.05em;
+        }
+        .tab-btn:hover { background: rgba(255,255,255,0.5); }
+        .tab-btn.active.mode-retire { background: #fff; color: var(--accent); box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+        .tab-btn.active.mode-young { background: #fff; color: var(--growth); box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+
+        .tab-content { display: none; animation: fadeIn 0.4s; }
+        .tab-content.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Form Layout */
+        .section-title {
+            font-size: 1.2em; font-weight: 700; margin: 30px 0 20px 0; padding-left: 12px;
+            border-left: 5px solid #ddd; color: var(--primary); display: flex; align-items: center; justify-content: space-between;
+        }
+        .mode-retire .section-title { border-color: var(--accent); }
+        .mode-young .section-title { border-color: var(--growth); }
+        .section-title.house-title { border-color: var(--house); color: var(--house); cursor: pointer; user-select: none; }
+        .section-title.house-title:hover { background-color: #fcf6ff; }
+
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; }
+        .input-group { margin-bottom: 20px; }
+        
+        label { display: block; margin-bottom: 8px; font-weight: 700; font-size: 0.95em; color: #2d3436; }
+        input[type="number"], select {
+            width: 100%; padding: 14px; border: 2px solid #e1e4e8; border-radius: 10px;
+            font-size: 1.05em; transition: 0.2s; box-sizing: border-box; background: #fff; color: #2d3436;
+        }
+        input:focus, select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 4px rgba(44,62,80,0.05); }
+
+        .hint {
+            font-size: 0.85em; color: var(--hint-color); margin-top: 6px; line-height: 1.4;
+            padding-left: 2px;
+        }
+        .hint strong { color: #636e72; font-weight: 600; }
+
+        /* Portfolio Customizer Styles */
+        .portfolio-toggle {
+            display: flex; gap: 10px; margin-bottom: 10px;
+        }
+        .pt-btn {
+            padding: 8px 16px; border-radius: 20px; border: 1px solid #ccc; cursor: pointer; font-size: 0.9em;
+            background: #fff; color: #666; user-select: none;
+        }
+        .pt-btn.active {
+            background: var(--primary); color: #fff; border-color: var(--primary);
+        }
+        
+        .portfolio-table {
+            width: 100%; border-collapse: separate; border-spacing: 0 8px; margin-top: 10px;
+        }
+        .portfolio-table th { text-align: left; font-size: 0.8em; color: #666; padding: 0 5px; }
+        .portfolio-table td { padding: 0 5px; vertical-align: middle; }
+        .portfolio-table select { font-size: 0.9em; padding: 10px; }
+        .portfolio-table input { font-size: 0.9em; padding: 10px; }
+        .sum-warning {
+            color: var(--error); font-weight: bold; font-size: 0.9em; margin-top: 5px; display: none;
+            background: #fadbd8; padding: 8px; border-radius: 6px; text-align: center;
+        }
+
+        /* Tags / Presets */
+        .presets-label { font-size: 0.8em; color: var(--hint-color); margin-bottom: 6px; margin-top: 5px; display: block;}
+        .presets { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 5px; }
+        .tag {
+            background: #f1f3f5; padding: 6px 12px; border-radius: 8px; font-size: 0.85em;
+            color: #636e72; cursor: pointer; border: 1px solid #dfe6e9; transition: 0.2s; user-select: none;
+        }
+        .tag:hover { background: #e2e6ea; border-color: #ced4da; transform: translateY(-1px); }
+        .tag.selected { background: #dbe4ff; color: #3b5bdb; border-color: #bac8ff; font-weight: bold; }
+        .tag.action-btn { background: #fff8e1; color: #b7791f; border-color: #ffeeba; }
+        .tag.risk-high { color: #c0392b; background: #fcebe6; border-color: #fadbd8; }
+
+        /* House Section */
+        #house-section, #r-loan-section {
+            background: #fdfbff; border: 2px dashed #d7bde2; padding: 20px; border-radius: 12px; display: none; margin-bottom: 20px;
+        }
+        #house-toggle-text::after, #r-loan-toggle-text::after { content: ' ▼'; font-size: 0.8em; }
+        #house-section.show, #r-loan-section.show { display: block; animation: fadeIn 0.3s; }
+
+        /* Buttons */
+        .btn-calc {
+            width: 100%; padding: 18px; border: none; border-radius: 12px;
+            font-size: 1.2em; font-weight: 800; color: white; cursor: pointer;
+            margin-top: 30px; transition: 0.2s; letter-spacing: 0.5px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        .btn-calc:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.15); }
+        .btn-retire { background: linear-gradient(135deg, #e67e22, #d35400); }
+        .btn-young { background: linear-gradient(135deg, #27ae60, #219150); }
+
+        /* Result Area */
+        .result-box {
+            margin-top: 50px; padding: 30px; border-radius: 16px; background: #fff;
+            border: 2px solid #f1f3f5; display: none; box-shadow: 0 10px 40px rgba(0,0,0,0.05);
+        }
+        
+        .result-header { text-align: center; margin-bottom: 30px; }
+        .purchasing-power-badge {
+            display: inline-block; background: #e3f2fd; color: #1565c0; padding: 6px 15px;
+            border-radius: 30px; font-size: 0.9em; font-weight: bold; margin-bottom: 15px;
+            border: 1px solid #bbdefb;
+        }
+
+        .phase-container { display: flex; gap: 20px; margin-bottom: 30px; }
+        .phase-card {
+            flex: 1; padding: 25px 20px; border-radius: 15px; text-align: center; color: white;
+            position: relative; overflow: hidden; box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+        .phase-card:hover { transform: translateY(-5px); }
+        .phase-card::before {
+            content: ''; position: absolute; top:0; left:0; right:0; height: 6px; background: rgba(0,0,0,0.15);
+        }
+        .p-gold { background: linear-gradient(135deg, #f1c40f, #f39c12); }
+        .p-silver { background: linear-gradient(135deg, #bdc3c7, #7f8c8d); }
+        .p-bronze { background: linear-gradient(135deg, #90e0ef, #0077b6); }
+
+        .p-title { font-size: 0.95em; opacity: 0.95; margin-bottom: 8px; font-weight: bold; letter-spacing: 0.5px; }
+        .p-amt { font-size: 1.8em; font-weight: 800; margin: 5px 0; text-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .p-desc { font-size: 0.85em; opacity: 0.9; margin-top: 5px; }
+
+        /* Comparison Box */
+        .comparison-box {
+            background: #f8f9fa; border-radius: 12px; padding: 20px; margin-bottom: 20px;
+            border: 1px solid #e9ecef; display: flex; align-items: center; justify-content: space-between;
+        }
+        .comp-label { font-size: 0.9em; color: #7f8c8d; font-weight: bold; }
+        .comp-val { font-size: 1.4em; font-weight: 800; color: var(--flat); }
+        .comp-note { font-size: 0.8em; color: #95a5a6; }
+        .vs-badge { background: #eee; padding: 5px 10px; border-radius: 50%; font-weight: bold; color: #7f8c8d; font-size: 0.8em;}
+
+        /* Section Separator Title */
+        .dwz-section-title {
+            text-align: center; font-weight: 800; color: var(--accent); margin: 35px 0 15px 0;
+            display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 1.1em;
+        }
+        .dwz-section-title::before, .dwz-section-title::after {
+            content: ''; height: 1px; width: 30px; background: #ffe0b2;
+        }
+
+        .chart-header {
+            font-size: 0.9em; font-weight: bold; color: #2c3e50; margin: 20px 0 10px 0; 
+            padding-left: 10px; border-left: 4px solid #ddd;
+        }
+
+        .chart-wrap { position: relative; height: 350px; width: 100%; margin-bottom: 30px;}
+
+        /* Footer Note */
+        .footer-note {
+            margin-top: 60px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+            font-size: 0.85em;
+            color: #636e72;
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+        }
+        .footer-note h4 { margin-top: 0; color: #2c3e50; }
+        .footer-note ol { padding-left: 20px; }
+        .footer-note li { margin-bottom: 10px; }
+
+        @media (max-width: 700px) {
+            .grid-2, .phase-container, .comparison-box { grid-template-columns: 1fr; flex-direction: column; gap: 15px; }
+            .container { padding: 20px; }
+            .p-amt { font-size: 1.5em; }
+            .comparison-box { text-align: center; }
+            .portfolio-table th:nth-child(1), .portfolio-table td:nth-child(1) { width: 40%; }
+            .portfolio-table th:nth-child(2), .portfolio-table td:nth-child(2) { width: 30%; }
+            .portfolio-table th:nth-child(3), .portfolio-table td:nth-child(3) { width: 30%; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Die With Zero 財務計算機 <span style="font-size:0.5em; vertical-align:top; background:#f1f3f5; padding:3px 6px; border-radius:4px; color:#666; border:1px solid #ddd;">PRO v4.5 增貸功能版</span></h1>
+    <p class="subtitle">全自動保守算法・全階段自訂配置・人生體驗積分</p>
+
+    <div style="text-align:center; margin-bottom:10px; font-size:0.85em; color:#95a5a6;">👇 請先選擇您的身分模式</div>
+    <div class="tabs">
+        <div class="tab-btn active mode-retire" onclick="switchMode('retire')">👴 我已退休<div style="font-size:0.75em; font-weight:normal; margin-top:3px;">(提領模式)</div></div>
+        <div class="tab-btn mode-young" onclick="switchMode('young')">🧑 還在努力<div style="font-size:0.75em; font-weight:normal; margin-top:3px;">(資產累積+買房模擬)</div></div>
+    </div>
+
+    <div class="input-group">
+        <label>💸 未來平均通膨率 (Inflation Rate)</label>
+        <div class="grid-2" style="grid-template-columns: 1fr 2fr; gap:15px;">
+            <input type="number" id="inflation" value="2.5" step="0.1">
+            <div>
+                <span class="presets-label">👇 點擊快速帶入參考值：</span>
+                <div class="presets">
+                    <div class="tag" onclick="setVal('inflation', 1.5)">1.5% (官方數據)</div>
+                    <div class="tag selected" onclick="setVal('inflation', 2.5)">2.5% (折衷建議)</div>
+                    <div class="tag" onclick="setVal('inflation', 3.0)">3.0% (體感通膨)</div>
+                </div>
+            </div>
+        </div>
+        <div class="hint">
+            <strong>影響購買力：</strong>此數值決定未來「錢變薄」的速度。若設為 2.5%，代表 30 年後的 100 元只剩現在約 47 元的價值。
+        </div>
+    </div>
+
+    <div id="tab-retire" class="tab-content active mode-retire">
+        <div class="section-title">Step 1: 盤點您的現況</div>
+        <div class="grid-2">
+            <div class="input-group">
+                <label>💰 現有可投資資產 (萬)</label>
+                <input type="number" id="r-assets" value="1000" placeholder="例: 1000">
+                <div class="hint">請輸入股票、基金、定存、現金總和。<br>⚠️ <strong>不包含</strong>自住且不打算賣出的房產。</div>
+            </div>
+            <div class="input-group">
+                <label>🛡️ 緊急預備金(萬)</label>
+                <input type="number" id="r-buffer" value="300" placeholder="例: 300">
+                <div class="hint">這筆錢是您的<strong>安全氣囊</strong>，計算時會先被扣除。</div>
+            </div>
+        </div>
+
+        <div class="section-title house-title" onclick="toggleRetireLoan()">
+            <span id="r-loan-toggle-text">🏠 房屋增貸活化資產 (點擊展開)</span>
+            <input type="checkbox" id="r-loan-enabled" style="display:none">
+        </div>
+        <div id="r-loan-section">
+            <div class="grid-2">
+                <div class="input-group">
+                    <label>💸 增貸金額 (萬)</label>
+                    <input type="number" id="r-loan-amt" value="500">
+                </div>
+                <div class="input-group">
+                    <label>📉 貸款利率 (%)</label>
+                    <input type="number" id="r-loan-rate" value="2.2" step="0.1">
+                </div>
+            </div>
+            <div class="input-group">
+                <label>📅 還款年限 (年)</label>
+                <input type="number" id="r-loan-years" value="20">
+            </div>
+            <div class="hint">
+                說明：此筆資金將自動併入「現有可投資資產」進行投資滾利。計算結果將自動扣除每月應繳本息。
+            </div>
+        </div>
+
+        <div class="section-title">Step 2: 設定時間與報酬</div>
+        <div class="grid-2">
+            <div class="input-group">
+                <label>👤 目前年齡 (歲)</label>
+                <input type="number" id="r-age-now" value="55">
+            </div>
+            <div class="input-group">
+                <label>🏁 人生登出年齡 (歲)</label>
+                <input type="number" id="r-age-end" value="85">
+            </div>
+        </div>
+
+        <div class="input-group">
+            <label>📈 投資組合預期報酬率 (名目, %)</label>
+            
+            <div class="portfolio-toggle">
+                <div class="pt-btn active" id="r-btn-simple" onclick="togglePortfolioMode('r', 'simple')">一般設定</div>
+                <div class="pt-btn" id="r-btn-custom" onclick="togglePortfolioMode('r', 'custom')">自訂投資組合</div>
+                <input type="hidden" id="r-mode-val" value="simple">
+            </div>
+
+            <div id="r-simple-block">
+                <input type="number" id="r-rate" value="4.5" step="0.1">
+                <span class="presets-label">👇 快速帶入：</span>
+                <div class="presets">
+                    <div class="tag" onclick="setVal('r-rate', 5.5)">穩健領息 (0056)</div>
+                    <div class="tag selected" onclick="setVal('r-rate', 4.5)">平衡型 (0050/現)</div>
+                    <div class="tag" onclick="setVal('r-rate', 6.5)">美股平衡 (VOO/債)</div>
+                    <div class="tag" onclick="setVal('r-rate', 8.0)">積極 (0050)</div>
+                    <div class="tag" onclick="setVal('r-rate', 8.0)">槓桿平衡 (631L/現)</div>
+                    <div class="tag risk-high" onclick="setVal('r-rate', 15.0)">全槓桿 (00631L)</div>
+                </div>
+            </div>
+
+            <div id="r-custom-block" style="display:none;">
+                <table class="portfolio-table" id="r-portfolio-table">
+                    <thead><tr><th>標的 (自動帶入參考報酬)</th><th>預期報酬(%)</th><th>比例(%)</th></tr></thead>
+                    <tbody></tbody> </table>
+                <div class="sum-warning" id="r-sum-warning">⚠️ 警告：目前配置比例總和為 0%，必須等於 100% 才能計算。</div>
+            </div>
+
+            <div class="hint">
+                <span style="color:#27ae60; font-weight:bold;">★ 系統採「保守演算法」：忽略月複利，假設資金每年只滾動一次。</span>
+            </div>
+        </div>
+
+        <button class="btn-calc btn-retire" onclick="calcRetire()">🚀 計算我的「享樂預算」</button>
+    </div>
+
+    <div id="tab-young" class="tab-content mode-young">
+        <div class="section-title">Step 1: 累積期 (現在 → 退休)</div>
+        <div class="grid-2">
+            <div class="input-group">
+                <label>👤 目前年齡</label>
+                <input type="number" id="y-age-now" value="30">
+            </div>
+            <div class="input-group">
+                <label>🏖️ 預計退休年齡</label>
+                <input type="number" id="y-age-retire" value="55">
+            </div>
+        </div>
+
+        <div class="grid-2">
+            <div class="input-group">
+                <label>🏦 目前已有資產 (萬)</label>
+                <input type="number" id="y-current" value="100">
+            </div>
+            <div class="input-group">
+                <label>💵 每月定期定額投入 (元)</label>
+                <input type="number" id="y-monthly" value="20000">
+            </div>
+        </div>
+        
+        <div class="input-group">
+            <label>🚀 累積期預期報酬率 (%)</label>
+            
+             <div class="portfolio-toggle">
+                <div class="pt-btn active" id="y-btn-simple" onclick="togglePortfolioMode('y', 'simple')">一般設定</div>
+                <div class="pt-btn" id="y-btn-custom" onclick="togglePortfolioMode('y', 'custom')">自訂投資組合</div>
+                <input type="hidden" id="y-mode-val" value="simple">
+            </div>
+
+            <div id="y-simple-block">
+                <div class="grid-2" style="grid-template-columns: 1fr 3fr; gap:15px;">
+                    <input type="number" id="y-rate-acc" value="8.0" step="0.1">
+                    <div>
+                        <span class="presets-label">👇 參考：</span>
+                        <div class="presets">
+                            <div class="tag" onclick="setVal('y-rate-acc', 8)">0050 (~8%)</div>
+                            <div class="tag" onclick="setVal('y-rate-acc', 9)">VOO (~9%)</div>
+                            <div class="tag" onclick="setVal('y-rate-acc', 11)">QQQ (~11%)</div>
+                            <div class="tag risk-high" onclick="setVal('y-rate-acc', 15)">00631L (~15%)</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="y-custom-block" style="display:none;">
+                <table class="portfolio-table" id="y-portfolio-table">
+                    <thead><tr><th>標的 (自動帶入參考報酬)</th><th>預期報酬(%)</th><th>比例(%)</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+                <div class="sum-warning" id="y-sum-warning">⚠️ 警告：目前配置比例總和為 0%，必須等於 100% 才能計算。</div>
+            </div>
+            <div class="hint">
+                <span style="color:#27ae60; font-weight:bold;">★ 保守演算法：定期定額視為年底一次投入，忽略月複利。</span>
+            </div>
+        </div>
+
+        <div class="input-group">
+            <label>👴 預估退休金一次領總額 (萬)</label>
+            <input type="number" id="y-pension" value="200" placeholder="選填，例如 200">
+        </div>
+
+        <div class="section-title house-title" onclick="toggleHouse()">
+            <span id="house-toggle-text">🏠 買房計畫 (點擊展開試算)</span>
+            <input type="checkbox" id="house-enabled" style="display:none">
+        </div>
+        <div id="house-section">
+            <div class="grid-2">
+                <div class="input-group">
+                    <label>📅 預計買房年齡 (歲)</label>
+                    <input type="number" id="h-age" value="35">
+                </div>
+                <div class="input-group">
+                    <label>🏷️ 房屋總價 (萬)</label>
+                    <input type="number" id="h-price" value="1500">
+                </div>
+            </div>
+            <div class="grid-2">
+                <div class="input-group">
+                    <label>💰 頭期款比例 (%)</label>
+                    <input type="number" id="h-down-pct" value="20">
+                </div>
+                <div class="input-group">
+                    <label>💸 房貸利率 (%) / 年限 (年)</label>
+                    <div style="display:flex; gap:10px">
+                        <input type="number" id="h-rate" value="2.2" step="0.1" placeholder="利率">
+                        <input type="number" id="h-years" value="30" placeholder="年限">
+                    </div>
+                </div>
+            </div>
+            <div class="input-group">
+                <label>🏠 原本的房租預算 (元/月)</label>
+                <input type="number" id="h-rent" value="15000">
+            </div>
+        </div>
+
+        <div class="section-title">Step 2: 提領期 (退休 → 登出)</div>
+        <div class="grid-2">
+             <div class="input-group">
+                <label>🏁 人生登出年齡</label>
+                <input type="number" id="y-age-end" value="85">
+            </div>
+            <div class="input-group">
+                <label>🛡️ 退休後保留預備金 (%)</label>
+                <input type="number" id="y-buffer-pct" value="20">
+            </div>
+        </div>
+
+        <div class="input-group">
+            <label>🐢 退休後投資報酬率 (%)</label>
+            
+            <div class="portfolio-toggle">
+                <div class="pt-btn active" id="y-dec-btn-simple" onclick="togglePortfolioMode('y-dec', 'simple')">一般設定</div>
+                <div class="pt-btn" id="y-dec-btn-custom" onclick="togglePortfolioMode('y-dec', 'custom')">自訂投資組合</div>
+                <input type="hidden" id="y-dec-mode-val" value="simple">
+            </div>
+
+             <div id="y-dec-simple-block">
+                <div class="grid-2" style="grid-template-columns: 1fr 3fr; gap:15px;">
+                    <input type="number" id="y-rate-dec" value="4.5" step="0.1">
+                    <div>
+                        <span class="presets-label">👇 退休投資風格：</span>
+                        <div class="presets">
+                            <div class="tag action-btn" onclick="copyRateToDec()">🔄 維持不變</div>
+                            <div class="tag" onclick="setVal('y-rate-dec', 5.5)">穩健領息 (0056)</div>
+                            <div class="tag" onclick="setVal('y-rate-dec', 4.5)">平衡型 (0050/現)</div>
+                            <div class="tag" onclick="setVal('y-rate-dec', 6.5)">美股平衡 (VOO/債)</div>
+                            <div class="tag" onclick="setVal('y-rate-dec', 8.0)">積極 (0050)</div>
+                            <div class="tag" onclick="setVal('y-rate-dec', 8.0)">槓桿平衡 (631L/現)</div>
+                            <div class="tag risk-high" onclick="setVal('y-rate-dec', 15.0)">全槓桿 (00631L)</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="y-dec-custom-block" style="display:none;">
+                <table class="portfolio-table" id="y-dec-portfolio-table">
+                    <thead><tr><th>標的 (自動帶入參考報酬)</th><th>預期報酬(%)</th><th>比例(%)</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+                <div class="sum-warning" id="y-dec-sum-warning">⚠️ 警告：目前配置比例總和為 0%，必須等於 100% 才能計算。</div>
+            </div>
+
+            <div class="hint">
+                <span style="color:#27ae60; font-weight:bold;">★ 保守演算法：忽略月複利，每年只滾動一次。</span>
+            </div>
+        </div>
+
+        <button class="btn-calc btn-young" onclick="calcYoung()">🔮 預測未來資產 & 生活品質</button>
+    </div>
+
+    <div id="result-area" class="result-box">
+        <div class="result-header">
+            <div class="purchasing-power-badge">✨ 金額皆已換算為「今日購買力」</div>
+            <div id="result-summary"></div>
+            <div id="house-impact-msg" style="margin-top:15px; padding:10px; background:#fce4ec; border-radius:8px; color:#c2185b; display:none; font-size:0.9em; line-height:1.5;"></div>
+            <div class="hint" style="margin-top:10px;">(這代表：雖然帳面上金額很大，但實際能買到的東西，相當於現在這個金額的價值)</div>
+        </div>
+        
+        <div id="comparison-block" class="comparison-box" style="display:none;">
+            <div>
+                <div class="comp-label">傳統平滑提領法 (固定花費)</div>
+                <div class="comp-note">若您選擇這筆錢平均花到死...</div>
+            </div>
+            <div class="vs-badge">VS</div>
+            <div style="text-align:right;">
+                <div class="comp-val" id="flat-val">$0</div>
+                <div class="comp-note">每月可花 (實質購買力)</div>
+            </div>
+        </div>
+
+        <div id="dwz-section-title" class="dwz-section-title" style="display:none;">
+            👇 Die With Zero 建議提領法 (3-2-1 階梯式)
+        </div>
+
+        <div class="phase-container" id="phase-container"></div>
+
+        <div id="acc-chart-container" style="display:none;">
+            <div class="chart-header">📈 第一階段：資產累積預測 (至退休)</div>
+            <div class="chart-wrap">
+                <canvas id="chartAcc"></canvas>
+            </div>
+        </div>
+
+        <div class="chart-header">📉 第二階段：退休後提領與消費 (Die With Zero vs 傳統)</div>
+        <div class="chart-wrap">
+            <canvas id="chartDec"></canvas>
+        </div>
+
+        <div class="hint" style="text-align:center; margin-top:20px; border-top:1px solid #eee; padding-top:15px;">
+            <strong>圖表說明：</strong><br>
+            <span style="color:#e67e22">■ 彩色柱狀圖</span>：Die With Zero 建議花費 (年輕多花)。<br>
+            <span style="color:#7f8c8d; text-decoration: underline dashed;">-- 灰色虛線</span>：傳統平滑分配 (每年花一樣多)。
+        </div>
+    </div>
+
+    <div class="footer-note">
+        <h4>ℹ️ 投資組合預期報酬率演算法說明</h4>
+        
+        <p>本頁採最保守的年複利算法：<span style="color:#e67e22; font-weight:bold;">「忽略月複利，每年只滾動一次」</span>。</p>
+        
+        <p><strong>這台計算機是怎麼算的？為什麼說它「最保守」？</strong><br>
+        為了不讓您對未來太過樂觀，我們在演算法上特別加了<strong>兩道「安全鎖」</strong>：</p>
+
+        <div style="margin-bottom:20px; padding-left:15px; border-left:4px solid #27ae60; background:#f9fbf9; padding:10px;">
+            <strong>🔒 第一道安全鎖 (存錢時)：忽略月複利</strong>
+            <p style="margin:5px 0; font-size:0.95em;">在設定年化報酬率 (例如 15%) 進行定期定額試算時，「月利率」的定義決定了最終資產的差異。以下是三種常見邏輯：</p>
+            <ol style="margin:5px 0 0 0; padding-left:20px; font-size:0.9em; color:#555;">
+                <li style="margin-bottom:5px;"><strong>銀行算法 (最樂觀)：</strong>假設年利率直接除以 12 就是月利率。實際有效年利率(EAR)會高達 16.07%。</li>
+                <li style="margin-bottom:5px;"><strong>投資嚴謹算法 (最精確)：</strong>嚴格定義「一年下來就是剛好 15%」，反推較低的月利率。</li>
+                <li style="margin-bottom:5px;"><strong>簡易估算 (最保守) <span style="color:#e67e22;">[本站採用]</span>：</strong>
+                    不計算每月複利，假設錢投入後，<strong>要等到年底才一次性結算利息</strong>。因為忽略了資金在一年之中產生的時間價值，算出來的金額最少，適合作為退休計劃的安全邊際。
+                </li>
+            </ol>
+        </div>
+
+        <div style="margin-bottom:20px; padding-left:15px; border-left:4px solid #e67e22; background:#fffbf0; padding:10px;">
+            <strong>🔒 第二道安全鎖 (花錢時)：自動扣除通膨</strong>
+            <p style="margin:5px 0 0 0; font-size:0.95em;">
+                在計算退休後「每月可花多少」時，程式會先將報酬率<strong>扣除通膨率</strong> (例如 8% - 2.5% = 5.5%)。確保算出來的金額是<strong>「今日購買力」</strong>，讓您知道退休後實際能買多少東西，而不是看著很大但貶值的數字自我安慰。
+            </p>
+        </div>
+
+        <p style="text-align:center; font-weight:bold; color:#2c3e50;">
+            📝 總結：「寧可現在低估，也不要老了不夠。」<br>透過雙重保守機制，只要這裡算出來顯示 Safe，現實生活中退休成功的機率就會非常高！
+        </p>
+    </div>
+</div>
+
+<script>
+    // --- Data Definitions ---
+    const ASSET_OPTIONS = [
+        { id: '0050', name: '0050 (元大台灣50)', rate: 8.0 },
+        { id: '0056', name: '0056 (元大高股息)', rate: 5.5 },
+        { id: '00631L', name: '00631L (50正2)', rate: 15.0 },
+        { id: 'VOO', name: 'VOO (標普500)', rate: 8.0 },
+        { id: 'QQQ', name: 'QQQ (那斯達克)', rate: 10.0 },
+        { id: 'QLD', name: 'QLD (那斯達克2倍)', rate: 12.0 },
+        { id: 'TQQQ', name: 'TQQQ (那斯達克3倍)', rate: 15.0 },
+        { id: 'CASH', name: '現金 (即定存)', rate: 1.0 },
+        { id: 'BOND', name: '美股短債 (SGOV/SHV)', rate: 3.5 }
+    ];
+
+    // --- Initialization ---
+    window.onload = function() {
+        generatePortfolioRows('r-portfolio-table', 'r-port');       // 退休模式
+        generatePortfolioRows('y-portfolio-table', 'y-port');       // 年輕人 - 累積期
+        generatePortfolioRows('y-dec-portfolio-table', 'y-dec-port'); // 年輕人 - 提領期 (New)
+    };
+
+    // --- UI Helpers ---
+    function switchMode(mode) {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        document.querySelector(`.mode-${mode}`).classList.add('active');
+        document.getElementById(`tab-${mode}`).classList.add('active');
+        document.getElementById('result-area').style.display = 'none';
+        
+        document.querySelectorAll('.presets .tag').forEach(t => t.classList.remove('selected'));
+    }
+
+    function setVal(id, val) {
+        document.getElementById(id).value = val;
+        const presets = event.target.closest('.presets');
+        if (presets) {
+            presets.querySelectorAll('.tag').forEach(t => t.classList.remove('selected'));
+            event.target.classList.add('selected');
+        }
+    }
+
+    function toggleHouse() {
+        const section = document.getElementById('house-section');
+        const checkbox = document.getElementById('house-enabled');
+        const text = document.getElementById('house-toggle-text');
+        
+        if (section.style.display === 'block') {
+            section.style.display = 'none';
+            section.classList.remove('show');
+            checkbox.checked = false;
+            text.innerText = "🏠 買房計畫 (點擊展開試算)";
+            text.style.color = "#8e44ad";
+        } else {
+            section.style.display = 'block';
+            setTimeout(() => section.classList.add('show'), 10);
+            checkbox.checked = true;
+            text.innerText = "🏠 買房計畫 (已啟用)";
+            text.style.color = "#27ae60";
+        }
+    }
+
+    function toggleRetireLoan() {
+        const section = document.getElementById('r-loan-section');
+        const checkbox = document.getElementById('r-loan-enabled');
+        const text = document.getElementById('r-loan-toggle-text');
+        
+        if (section.style.display === 'block') {
+            section.style.display = 'none';
+            section.classList.remove('show');
+            checkbox.checked = false;
+            text.innerText = "🏠 房屋增貸活化資產 (點擊展開)";
+            text.style.color = "#8e44ad";
+        } else {
+            section.style.display = 'block';
+            setTimeout(() => section.classList.add('show'), 10);
+            checkbox.checked = true;
+            text.innerText = "🏠 房屋增貸活化資產 (已啟用)";
+            text.style.color = "#27ae60";
+        }
+    }
+
+    function copyRateToDec() {
+        const accMode = document.getElementById('y-mode-val').value;
+        if (accMode === 'custom') {
+            alert("⚠️ 無法自動帶入：\n累積期目前設定為「自訂投資組合」。\n請手動輸入您退休後的預期報酬率。");
+            return;
+        }
+
+        const accRate = document.getElementById('y-rate-acc').value;
+        document.getElementById('y-rate-dec').value = accRate;
+        const presets = event.target.closest('.presets');
+        if (presets) {
+            presets.querySelectorAll('.tag').forEach(t => t.classList.remove('selected'));
+            event.target.classList.add('selected');
+        }
+    }
+
+    function formatMoney(num) {
+        if (isNaN(num)) return "0";
+        return Math.round(num).toLocaleString('zh-TW');
+    }
+
+    function getNum(id) {
+        const val = document.getElementById(id).value;
+        return val === "" ? 0 : parseFloat(val);
+    }
+
+    // --- Portfolio Logic ---
+    function togglePortfolioMode(prefix, mode) {
+        // Switch Buttons
+        document.getElementById(`${prefix}-btn-simple`).className = mode === 'simple' ? 'pt-btn active' : 'pt-btn';
+        document.getElementById(`${prefix}-btn-custom`).className = mode === 'custom' ? 'pt-btn active' : 'pt-btn';
+        
+        // Show/Hide Blocks
+        document.getElementById(`${prefix}-simple-block`).style.display = mode === 'simple' ? 'block' : 'none';
+        document.getElementById(`${prefix}-custom-block`).style.display = mode === 'custom' ? 'block' : 'none';
+        
+        // Update Hidden Input
+        document.getElementById(`${prefix}-mode-val`).value = mode;
+    }
+
+    function generatePortfolioRows(tableId, classPrefix) {
+        const tbody = document.querySelector(`#${tableId} tbody`);
+        let html = '';
+        // Create 5 rows
+        for(let i=0; i<5; i++) {
+            html += `
+                <tr>
+                    <td>
+                        <select class="${classPrefix}-select" onchange="updateRate(this)">
+                            <option value="">-- 請選擇 --</option>
+                            ${ASSET_OPTIONS.map(opt => `<option value="${opt.rate}">${opt.name}</option>`).join('')}
+                        </select>
+                    </td>
+                    <td>
+                        <input type="number" class="${classPrefix}-rate" step="0.1" placeholder="自動帶入">
+                    </td>
+                    <td>
+                        <input type="number" class="${classPrefix}-pct" placeholder="0" oninput="checkSum('${classPrefix}')">
+                    </td>
+                </tr>
+            `;
+        }
+        tbody.innerHTML = html;
+    }
+
+    function updateRate(selectElem) {
+        const row = selectElem.closest('tr');
+        // Find the FIRST input in the row, which is the rate input
+        const rateInput = row.querySelector('input[type="number"]'); 
+        if (selectElem.value !== "") {
+            rateInput.value = selectElem.value;
+        } else {
+            rateInput.value = "";
+        }
+    }
+
+    function checkSum(classPrefix) {
+        let total = 0;
+        document.querySelectorAll(`.${classPrefix}-pct`).forEach(input => {
+            total += parseFloat(input.value) || 0;
+        });
+        
+        // Need to map prefix to warning ID
+        let warningId = '';
+        if (classPrefix === 'r-port') warningId = 'r-sum-warning';
+        else if (classPrefix === 'y-port') warningId = 'y-sum-warning';
+        else if (classPrefix === 'y-dec-port') warningId = 'y-dec-sum-warning';
+        
+        const warningDiv = document.getElementById(warningId);
+        
+        if (Math.abs(total - 100) > 0.1) {
+            warningDiv.style.display = 'block';
+            warningDiv.innerText = `⚠️ 警告：目前配置總和為 ${total}%，必須等於 100% 才能計算。`;
+            return false;
+        } else {
+            warningDiv.style.display = 'none';
+            return true;
+        }
+    }
+
+    function getPortfolioRate(prefix, modeInputId, simpleRateId, classPrefix) {
+        const mode = document.getElementById(modeInputId).value;
+        if (mode === 'simple') {
+            return getNum(simpleRateId);
+        } else {
+            // Check sum first
+            if (!checkSum(classPrefix)) return -1; // Error code
+
+            let weightedRate = 0;
+            // Iterate all rows to calculate weighted average
+            const selects = document.querySelectorAll(`.${classPrefix}-select`);
+            selects.forEach((sel) => {
+                const row = sel.closest('tr');
+                const r = parseFloat(row.querySelector(`.${classPrefix}-rate`).value) || 0;
+                const p = parseFloat(row.querySelector(`.${classPrefix}-pct`).value) || 0;
+                weightedRate += r * (p / 100);
+            });
+            return weightedRate;
+        }
+    }
+
+    // --- Math Helpers (Conservative) ---
+    function PMT_Loan(rate, nper, pv) {
+        // 房貸計算仍維持標準銀行算法 (因為銀行真的這樣算)
+        if (rate === 0) return pv / (nper * 12);
+        const r = rate / 100 / 12;
+        const n = nper * 12;
+        return (pv * r) / (1 - Math.pow(1 + r, -n));
+    }
+
+    // 年金計算：改用 Annual Annuity (保守算法，一年一付)
+    function PMT_Annuity_Annual(principal, realRate, years) {
+        const r = realRate / 100;
+        if (r === 0) return principal / years;
+        // P * r / (1 - (1+r)^-n)
+        return (principal * r) / (1 - Math.pow(1 + r, -years));
+    }
+
+    function calculateBaseUnit_Annual(principal, realRate, totalYears) {
+        // Die With Zero 3 Buckets Logic adapted for Annual compounding
+        const r = realRate / 100;
+        const bucketSize = totalYears / 3; 
+        let denominator = 0;
+
+        for (let t = 1; t <= totalYears; t++) {
+            let weight = 1;
+            if (t <= bucketSize) weight = 3;
+            else if (t <= bucketSize * 2) weight = 2;
+            
+            // PV factor for year t is 1/(1+r)^t
+            denominator += weight / Math.pow(1 + r, t);
+        }
+        return principal / denominator;
+    }
+
+    // --- 退休模式邏輯 ---
+    function calcRetire() {
+        try {
+            let assets = getNum('r-assets') * 10000;
+            const buffer = getNum('r-buffer') * 10000;
+            const ageNow = getNum('r-age-now');
+            const ageEnd = getNum('r-age-end');
+            const inflation = getNum('inflation');
+
+            // 處理增貸
+            const loanEnabled = document.getElementById('r-loan-enabled').checked;
+            let monthlyLoanPay = 0;
+            let loanMsg = "";
+
+            if (loanEnabled) {
+                const loanAmt = getNum('r-loan-amt') * 10000;
+                const loanRate = getNum('r-loan-rate');
+                const loanYears = getNum('r-loan-years');
+
+                // 1. 將增貸金額加入現有資產 (Inflow)
+                assets += loanAmt;
+
+                // 2. 計算每月應還本息 (Outflow)
+                if (loanAmt > 0 && loanYears > 0) {
+                    monthlyLoanPay = PMT_Loan(loanRate, loanYears, loanAmt);
+                }
+
+                loanMsg = `
+                    <strong>🏠 已啟用房屋增貸：</strong><br>
+                    增貸金額 <strong>$${formatMoney(loanAmt/10000)}萬</strong> 已併入本金滾利。<br>
+                    每月需繳房貸本息約 <strong>$${formatMoney(monthlyLoanPay)}</strong>。<br>
+                    下方計算結果已自動扣除此筆還款金額。
+                `;
+            }
+
+            // 取得報酬率 (自訂或簡單)
+            const rateNominal = getPortfolioRate('r', 'r-mode-val', 'r-rate', 'r-port');
+            if (rateNominal === -1) {
+                alert("退休模式：自訂投資組合比例總和不為 100%，請修正後再計算。");
+                return;
+            }
+
+            if (ageEnd <= ageNow) return alert("登出年齡需大於目前年齡");
+            
+            const principal = assets - buffer;
+            if (principal <= 0) return alert("資產不足以保留預備金，請調整金額");
+
+            // Fisher Equation for Real Rate
+            const realRate = ((1 + rateNominal/100) / (1 + inflation/100) - 1) * 100;
+            const years = ageEnd - ageNow;
+
+            // 使用保守算法 (Annual Logic)
+            const baseUnitAnnual = calculateBaseUnit_Annual(principal, realRate, years);
+            const flatAnnual = PMT_Annuity_Annual(principal, realRate, years);
+
+            // 轉成月顯示 (直接除以12)
+            // 將 loanMsg 傳入，並傳入 monthlyLoanPay 作為扣除項
+            renderResults(ageNow, years/3, baseUnitAnnual/12, principal, "退休模式", 0, 0, loanMsg, [], [], flatAnnual, monthlyLoanPay);
+        } catch (e) {
+            alert("計算發生錯誤，請檢查輸入數值");
+            console.error(e);
+        }
+    }
+
+    // --- 年輕人模式邏輯 ---
+    function calcYoung() {
+        try {
+            const ageNow = getNum('y-age-now');
+            const ageRetire = getNum('y-age-retire');
+            const ageEnd = getNum('y-age-end');
+            const currentAsset = getNum('y-current') * 10000;
+            let monthlyInv = getNum('y-monthly');
+            const inflation = getNum('inflation');
+            
+            // 取得 1.累積期報酬率
+            const rateAcc = getPortfolioRate('y', 'y-mode-val', 'y-rate-acc', 'y-port');
+            if (rateAcc === -1) {
+                alert("累積期：自訂投資組合比例總和不為 100%，請修正後再計算。");
+                return;
+            }
+            const rAccDecimal = rateAcc / 100;
+
+            if (ageRetire <= ageNow) return alert("退休年齡必須大於目前年齡");
+            if (ageEnd <= ageRetire) return alert("登出年齡必須大於退休年齡");
+
+            const houseEnabled = document.getElementById('house-enabled').checked;
+            const houseAge = getNum('h-age');
+            const housePrice = getNum('h-price') * 10000;
+            const downPct = getNum('h-down-pct');
+            const mortgageRate = getNum('h-rate');
+            const mortgageYears = getNum('h-years');
+            const originalRent = getNum('h-rent');
+
+            let currentMoney = currentAsset;
+            let chartData = [];
+            let chartLabels = [];
+            let houseMsg = "";
+            let isBankrupt = false;
+
+            // 保守演算法：以「年」為單位進行迴圈
+            const totalYearsAcc = ageRetire - ageNow;
+            
+            // 初始點
+            chartLabels.push(`${ageNow}歲`);
+            chartData.push(Math.round(currentMoney));
+
+            for (let i = 0; i < totalYearsAcc; i++) {
+                let thisYearAge = ageNow + i;
+                
+                // 1. 處理買房 (假設發生在該歲數的年初)
+                if (houseEnabled && thisYearAge === houseAge) {
+                    const downPayment = housePrice * (downPct / 100);
+                    if (currentMoney < downPayment) {
+                        alert(`警告：在 ${houseAge} 歲時，您的資產累積僅 ${formatMoney(currentMoney/10000)} 萬，不足以支付頭期款 ${formatMoney(downPayment/10000)} 萬。`);
+                        return; 
+                    }
+                    currentMoney -= downPayment;
+                    const loanAmount = housePrice - downPayment;
+                    const monthlyMortgage = PMT_Loan(mortgageRate, mortgageYears, loanAmount);
+                    const extraCost = monthlyMortgage - originalRent; 
+                    monthlyInv -= extraCost; 
+
+                    houseMsg = `
+                        <strong>🏠 買房衝擊分析：</strong><br>
+                        您在 ${houseAge} 歲支付了頭期款 <strong>$${formatMoney(downPayment/10000)}萬</strong>。<br>
+                        每月房貸約 <strong>$${formatMoney(monthlyMortgage)}</strong> (原房租 $${formatMoney(originalRent)})。<br>
+                        導致每月投資金額變為 <strong>$${formatMoney(monthlyInv)}</strong>。
+                    `;
+                }
+
+                // 2. 資產滾動 (保守算法：年初本金滾一年 + 該年總投入不計息)
+                // 年投入總額
+                let yearContribution = monthlyInv * 12;
+                
+                // 本金滾利 (若本金因買房變負，則不該滾利，甚至該算負債利息，但此處簡化為0或警告)
+                if (currentMoney < 0) isBankrupt = true;
+
+                currentMoney = currentMoney * (1 + rAccDecimal) + yearContribution;
+
+                if (currentMoney < 0) isBankrupt = true;
+
+                // 記錄年底數據 (即下一年歲數)
+                chartLabels.push(`${thisYearAge + 1}歲`);
+                chartData.push(Math.round(currentMoney));
+            }
+
+            if (isBankrupt) {
+                alert("警告：買房後的房貸負擔過重，導致您的投資資產在退休前已耗盡！");
+                return;
+            }
+
+            const pension = getNum('y-pension') * 10000;
+            let totalNominal = currentMoney + pension;
+            
+            // 折現回今日購買力
+            let totalReal = totalNominal / Math.pow(1 + inflation/100, totalYearsAcc);
+
+            const bufferPct = getNum('y-buffer-pct');
+            let playMoneyReal = totalReal * (1 - bufferPct/100);
+            
+            // 取得 2.退休後報酬率 (New Logic: also supports portfolio)
+            const rateDecNominal = getPortfolioRate('y-dec', 'y-dec-mode-val', 'y-rate-dec', 'y-dec-port');
+            if (rateDecNominal === -1) {
+                alert("退休後：自訂投資組合比例總和不為 100%，請修正後再計算。");
+                return;
+            }
+            
+            const realRateDec = ((1 + rateDecNominal/100) / (1 + inflation/100) - 1) * 100;
+            const yearsDec = ageEnd - ageRetire;
+            
+            // 提領期保守算法
+            const baseUnitAnnual = calculateBaseUnit_Annual(playMoneyReal, realRateDec, yearsDec);
+            const flatAnnual = PMT_Annuity_Annual(playMoneyReal, realRateDec, yearsDec);
+
+            // 年輕人模式沒有 "monthlyFixedDeduction" (0)
+            renderResults(ageRetire, yearsDec/3, baseUnitAnnual/12, playMoneyReal, "年輕人模式", totalNominal, totalReal, houseMsg, chartLabels, chartData, flatAnnual, 0);
+
+        } catch (e) {
+            alert("計算過程發生錯誤");
+            console.error(e);
+        }
+    }
+
+    // --- Rendering ---
+    let chartInstanceAcc = null;
+    let chartInstanceDec = null;
+
+    function renderResults(startAge, bucketSize, baseUnitMonthly, totalRealMoney, mode, nominalFV=0, realFV=0, houseMsg="", chartLabels=[], chartData=[], flatAnnual=0, monthlyFixedDeduction=0) {
+        const area = document.getElementById('result-area');
+        area.style.display = 'block';
+        area.scrollIntoView({ behavior: 'smooth' });
+
+        // Summary
+        let html = '';
+        if (mode === "退休模式") {
+            html = `<h2 style="margin:0; color:#2c3e50">您的享樂本金 (現值)：${formatMoney(totalRealMoney/10000)} 萬</h2>`;
+        } else {
+            html = `
+                <h3 style="margin:5px 0; color:#7f8c8d">${startAge} 歲累積資產：${formatMoney(nominalFV/10000)} 萬</h3>
+                <h2 style="margin:0; color:#27ae60">今日購買力：${formatMoney(realFV/10000)} 萬</h2>
+            `;
+        }
+        document.getElementById('result-summary').innerHTML = html;
+
+        // House Message
+        const msgDiv = document.getElementById('house-impact-msg');
+        if (houseMsg) {
+            msgDiv.style.display = 'block';
+            msgDiv.innerHTML = houseMsg;
+        } else {
+            msgDiv.style.display = 'none';
+        }
+
+        // Comparison Box
+        const compBox = document.getElementById('comparison-block');
+        compBox.style.display = 'flex';
+        // 傳統平滑法也要扣除固定還款
+        let flatMonthly = (flatAnnual/12) - monthlyFixedDeduction;
+        if (flatMonthly < 0) flatMonthly = 0;
+        document.getElementById('flat-val').innerText = `$${formatMoney(flatMonthly)}`; 
+
+        // Header Visibility
+        document.getElementById('dwz-section-title').style.display = 'flex';
+
+        // Phase Cards
+        // 這裡需要扣除 monthlyFixedDeduction
+        let m1 = (baseUnitMonthly * 3) - monthlyFixedDeduction;
+        let m2 = (baseUnitMonthly * 2) - monthlyFixedDeduction;
+        let m3 = (baseUnitMonthly * 1) - monthlyFixedDeduction;
+        
+        // 避免顯示負數
+        if (m1 < 0) m1 = 0;
+        if (m2 < 0) m2 = 0;
+        if (m3 < 0) m3 = 0;
+
+        const p1End = Math.floor(startAge + bucketSize);
+        const p2End = Math.floor(startAge + bucketSize * 2);
+        const p3End = Math.floor(startAge + bucketSize * 3);
+
+        document.getElementById('phase-container').innerHTML = `
+            <div class="phase-card p-gold">
+                <div class="p-title">🚀 黃金期 (${startAge} - ${p1End}歲)</div>
+                <div class="p-amt">$${formatMoney(m1)}</div>
+                <div class="p-desc">每月可花 (實質購買力)</div>
+            </div>
+            <div class="phase-card p-silver">
+                <div class="p-title">🚢 白銀期 (${p1End} - ${p2End}歲)</div>
+                <div class="p-amt">$${formatMoney(m2)}</div>
+                <div class="p-desc">每月可花</div>
+            </div>
+            <div class="phase-card p-bronze">
+                <div class="p-title">🏡 慢活期 (${p2End} - ${p3End}歲)</div>
+                <div class="p-amt">$${formatMoney(m3)}</div>
+                <div class="p-desc">每月可花</div>
+            </div>
+        `;
+
+        // Chart Rendering Logic
+        const accContainer = document.getElementById('acc-chart-container');
+        
+        // Always draw Decumulation Chart (Bottom)
+        drawDecChart(startAge, bucketSize * 3, bucketSize, baseUnitMonthly, flatAnnual/12, monthlyFixedDeduction);
+
+        // If Young Mode, also draw Accumulation Chart (Top)
+        if (mode === "年輕人模式" && chartData.length > 0) {
+            accContainer.style.display = 'block';
+            drawAccChart(chartLabels, chartData);
+        } else {
+            accContainer.style.display = 'none';
+        }
+    }
+
+    function drawAccChart(labels, data) {
+        const ctx = document.getElementById('chartAcc').getContext('2d');
+        if (chartInstanceAcc) chartInstanceAcc.destroy();
+        
+        chartInstanceAcc = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: '資產累積 (名目金額, 保守估算)',
+                    data: data,
+                    borderColor: '#27ae60',
+                    backgroundColor: 'rgba(39, 174, 96, 0.1)',
+                    fill: true,
+                    tension: 0.3
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { beginAtZero: false, title: { display: true, text: '總資產 (元)' } }
+                }
+            }
+        });
+    }
+
+    function drawDecChart(startAge, totalYears, bucketSize, baseUnitMonthly, flatMonthly, deduction) {
+        const ctx = document.getElementById('chartDec').getContext('2d');
+        if (chartInstanceDec) chartInstanceDec.destroy();
+
+        let labels = [];
+        let data = [];
+        let dataFlat = [];
+        let backgroundColors = [];
+
+        // 傳統平滑法扣除貸款
+        let adjustedFlat = flatMonthly - deduction;
+        if (adjustedFlat < 0) adjustedFlat = 0;
+
+        for (let i = 0; i < totalYears; i++) {
+            labels.push(`${startAge + i}歲`);
+            
+            let val = 0;
+            let color = '';
+            if (i < bucketSize) {
+                val = (baseUnitMonthly * 3) - deduction;
+                color = 'rgba(241, 196, 15, 0.7)'; 
+            } else if (i < bucketSize * 2) {
+                val = (baseUnitMonthly * 2) - deduction;
+                color = 'rgba(189, 195, 199, 0.7)'; 
+            } else {
+                val = (baseUnitMonthly * 1) - deduction;
+                color = 'rgba(144, 224, 239, 0.7)'; 
+            }
+            if (val < 0) val = 0;
+
+            data.push(val);
+            dataFlat.push(adjustedFlat);
+            backgroundColors.push(color);
+        }
+
+        chartInstanceDec = new Chart(ctx, {
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        type: 'line',
+                        label: '傳統平滑提領 (固定)',
+                        data: dataFlat,
+                        borderColor: '#95a5a6',
+                        borderWidth: 2,
+                        borderDash: [5, 5],
+                        pointRadius: 0,
+                        fill: false,
+                        order: 0
+                    },
+                    {
+                        type: 'bar',
+                        label: 'Die With Zero 建議 (階梯)',
+                        data: data,
+                        backgroundColor: backgroundColors,
+                        borderWidth: 0,
+                        borderRadius: 4,
+                        order: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { beginAtZero: true, title: { display: true, text: '月預算 (實質購買力)' } }
+                }
+            }
+        });
+    }
+</script>
+
+</body>
+</html>
